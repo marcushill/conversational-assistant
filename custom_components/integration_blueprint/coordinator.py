@@ -7,7 +7,7 @@ from typing import TYPE_CHECKING, Any
 from homeassistant.exceptions import ConfigEntryAuthFailed
 from homeassistant.helpers.update_coordinator import DataUpdateCoordinator, UpdateFailed
 
-from .api import (
+from .blueprint_api import (
     IntegrationBlueprintApiClientAuthenticationError,
     IntegrationBlueprintApiClientError,
 )
