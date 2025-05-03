@@ -17,7 +17,7 @@ from .blueprint_api import (
     IntegrationBlueprintApiClientCommunicationError,
     IntegrationBlueprintApiClientError,
 )
-from .const import DOMAIN, LOGGER, CONFIG_AGENT_NAME
+from .const import DOMAIN, LOGGER, CONF_AGENT_NAME
 
 
 async def validate_basic_info(user_input: dict | None) -> bool:
@@ -28,7 +28,7 @@ async def validate_basic_info(user_input: dict | None) -> bool:
     if user_input.get(CONF_URL) == "":
         return False
 
-    if user_input.get(CONFIG_AGENT_NAME) == "":
+    if user_input.get(CONF_AGENT_NAME) == "":
         return False
 
     return True
@@ -47,8 +47,8 @@ class MatchaFlowHandler(config_entries.ConfigFlow, domain=DOMAIN):
         _errors = {}
         if user_input is not None:
             if await validate_basic_info(user_input):
-                agent_title = f"Matcha Agent {user_input[CONFIG_AGENT_NAME]}"
-                unique_id = slugify(urllib.parse.urljoin(user_input[CONF_URL], "agents", user_input[CONFIG_AGENT_NAME]))
+                agent_title = f"Matcha Agent {user_input[CONF_AGENT_NAME]}"
+                unique_id = slugify(urllib.parse.urljoin(user_input[CONF_URL], "agents", user_input[CONF_AGENT_NAME]))
                 await self.async_set_unique_id(unique_id=unique_id)
                 self._abort_if_unique_id_configured()
                 return self.async_create_entry(
@@ -67,7 +67,7 @@ class MatchaFlowHandler(config_entries.ConfigFlow, domain=DOMAIN):
                             type=selector.TextSelectorType.URL,
                         ),
                     ),
-                    vol.Required(CONFIG_AGENT_NAME): selector.TextSelector(
+                    vol.Required(CONF_AGENT_NAME): selector.TextSelector(
                         selector.TextSelectorConfig(
                             type=selector.TextSelectorType.TEXT,
                         ),

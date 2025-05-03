@@ -7,6 +7,7 @@
   "config_flow": true,
   "documentation": "https://github.com/ludeeus/matcha_conversation_agent",
   "iot_class": "cloud_polling",
+  "integration_type": "service",
   "issue_tracker": "https://github.com/ludeeus/matcha_conversation_agent/issues",
   "version": "0.1.0"
 }
