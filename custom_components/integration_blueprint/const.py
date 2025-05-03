@@ -1,8 +1,8 @@
-"""Constants for integration_blueprint."""
+"""Constants for matcha_conversation_agent."""
 
 from logging import Logger, getLogger
 
 LOGGER: Logger = getLogger(__package__)
 
-DOMAIN = "integration_blueprint"
+DOMAIN = "matcha_conversation_agent"
 ATTRIBUTION = "Data provided by http://jsonplaceholder.typicode.com/"

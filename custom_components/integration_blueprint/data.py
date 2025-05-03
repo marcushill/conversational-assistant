@@ -1,4 +1,4 @@
-"""Custom types for integration_blueprint."""
+"""Custom types for matcha_conversation_agent."""
 
 from __future__ import annotations
 

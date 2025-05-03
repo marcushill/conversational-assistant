@@ -1,4 +1,4 @@
-"""Sensor platform for integration_blueprint."""
+"""Sensor platform for matcha_conversation_agent."""
 
 from __future__ import annotations
 
@@ -17,7 +17,7 @@ if TYPE_CHECKING:
 
 ENTITY_DESCRIPTIONS = (
     SensorEntityDescription(
-        key="integration_blueprint",
+        key="matcha_conversation_agent",
         name="Integration Sensor",
         icon="mdi:format-quote-close",
     ),
@@ -40,7 +40,7 @@ async def async_setup_entry(
 
 
 class IntegrationBlueprintSensor(IntegrationBlueprintEntity, SensorEntity):
-    """integration_blueprint Sensor class."""
+    """matcha_conversation_agent Sensor class."""
 
     def __init__(
         self,
