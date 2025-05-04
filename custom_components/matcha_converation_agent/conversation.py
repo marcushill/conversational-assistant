@@ -5,12 +5,10 @@ from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers.entity_platform import AddConfigEntryEntitiesCallback
 
-from custom_components.matcha_converation_agent import DOMAIN, DATA_AGENT, _convert_content
-
 from homeassistant.components import conversation, assist_pipeline
 from homeassistant.const import CONF_URL, MATCH_ALL, CONF_LLM_HASS_API, Platform
 from homeassistant.helpers.entity_platform import AddConfigEntryEntitiesCallback
-from homeassistant.helpers.llm import ToolInput
+from homeassistant.helpers.llm import ToolInput, Tool
 from homeassistant.loader import async_get_loaded_integration
 from homeassistant.helpers import aiohttp_client, intent, device_registry
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
@@ -106,11 +104,11 @@ class MatchaAgent(conversation.ConversationEntity, conversation.AbstractConversa
             return err.as_conversation_result()
 
         tools: list[dict[str, Any]] | None = None
-        # if chat_log.llm_api:
-        #     tools = [
-        #         _format_tool(tool)  # TODO format the tools as your LLM expects
-        #         for tool in chat_log.llm_api.tools
-        #     ]
+        if chat_log.llm_api:
+            tools = [
+                _convert_tool(tool)  # TODO format the tools as your LLM expects
+                for tool in chat_log.llm_api.tools
+            ]
 
         messages = [
             _convert_content(user_input, content) for content in chat_log.content
@@ -122,7 +120,7 @@ class MatchaAgent(conversation.ConversationEntity, conversation.AbstractConversa
                 self.entry.data.get(CONF_AGENT_NAME),
                   {
                       "messages": messages,
-                      "tools": [],
+                      "tools": tools,
                   })
 
 
@@ -151,3 +149,43 @@ class MatchaAgent(conversation.ConversationEntity, conversation.AbstractConversa
             conversation_id=chat_log.conversation_id,
             continue_conversation=chat_log.continue_conversation,
         )
+
+
+hass_to_match_roles = {
+    # System, User, Assistant, Function, Tool, Developer
+    "system": "System",
+    "user": "User",
+    "assistant": "Assistant",
+    "tool_result": "Tool"
+}
+matcha_to_has_roles = {v: k for k, v in hass_to_match_roles.items()}
+
+def _convert_content(user_input: conversation.ConversationInput, content: conversation.Content) -> dict[str, Any]:
+    # Switch over all possible content types
+    result = {
+        "role": hass_to_match_roles[content.role],
+        "content": content.content
+    }
+
+    if result["role"] == "User":
+        result["user_name"] = user_input.context.user_id
+    else:
+        result["user_name"] = user_input.agent_id
+
+    if result["role"] == "Tool":
+        result["tool_call_result"] = {
+            "id": content.tool_call_id,
+            "name": content.tool_name,
+            "result": content.tool_result
+        }
+
+    return result
+
+def _convert_tool(tool: Tool) -> dict[str, Any]:
+    return {
+        "name": tool.name,
+        "type": "function",
+        "description": tool.description,
+        "parameters": tool.parameters,
+        "strict": True,
+    }

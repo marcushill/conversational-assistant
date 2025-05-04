@@ -58,33 +58,3 @@ async def async_reload_entry(
     await async_unload_entry(hass, entry)
     await async_setup_entry(hass, entry)
 
-
-hass_to_match_roles = {
-    # System, User, Assistant, Function, Tool, Developer
-    "system": "System",
-    "user": "User",
-    "assistant": "Assistant",
-    "tool_result": "Tool"
-}
-matcha_to_has_roles = {v: k for k, v in hass_to_match_roles.items()}
-
-def _convert_content(user_input: conversation.ConversationInput, content: conversation.Content) -> dict[str, Any]:
-    # Switch over all possible content types
-    result = {
-        "role": hass_to_match_roles[content.role],
-        "content": content.content
-    }
-
-    if result["role"] == "User":
-        result["user_name"] = user_input.context.user_id
-    else:
-        result["user_name"] = user_input.agent_id
-
-    if result["role"] == "Tool":
-        result["tool_call_result"] = {
-            "id": content.tool_call_id,
-            "name": content.tool_name,
-            "result": content.tool_result
-        }
-
-    return result
