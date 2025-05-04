@@ -5,6 +5,7 @@
     "@ludeeus"
   ],
   "config_flow": true,
+  "dependencies": ["conversation"],
   "documentation": "https://github.com/ludeeus/matcha_conversation_agent",
   "iot_class": "cloud_polling",
   "integration_type": "service",

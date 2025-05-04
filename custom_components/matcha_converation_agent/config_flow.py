@@ -3,20 +3,13 @@
 from __future__ import annotations
 
 import urllib.parse
+from typing import Any, Coroutine, TypedDict
 
 import voluptuous as vol
 from homeassistant import config_entries
 from homeassistant.const import CONF_PASSWORD, CONF_USERNAME, CONF_URL
 from homeassistant.helpers import selector
-from homeassistant.helpers.aiohttp_client import async_create_clientsession
 from slugify import slugify
-
-from .blueprint_api import (
-    IntegrationBlueprintApiClient,
-    IntegrationBlueprintApiClientAuthenticationError,
-    IntegrationBlueprintApiClientCommunicationError,
-    IntegrationBlueprintApiClientError,
-)
 from .const import DOMAIN, LOGGER, CONF_AGENT_NAME
 
 
@@ -42,7 +35,7 @@ class MatchaFlowHandler(config_entries.ConfigFlow, domain=DOMAIN):
     async def async_step_user(
         self,
         user_input: dict | None = None,
-    ) -> config_entries.ConfigFlowResult:
+    ) -> TypedDict:
         """Handle a flow initialized by the user."""
         _errors = {}
         if user_input is not None:
