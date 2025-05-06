@@ -2,13 +2,13 @@
   "domain": "matcha_conversation_agent",
   "name": "Matcha Conversation Agent",
   "codeowners": [
-    "@ludeeus"
+    "@marcushill"
   ],
   "config_flow": true,
   "dependencies": ["conversation"],
-  "documentation": "https://github.com/ludeeus/matcha_conversation_agent",
+  "documentation": "https://github.com/marcushill/matcha_conversation_agent",
   "iot_class": "cloud_polling",
   "integration_type": "service",
-  "issue_tracker": "https://github.com/ludeeus/matcha_conversation_agent/issues",
+  "issue_tracker": "https://github.com/marcushill/matcha_conversation_agent/issues",
   "version": "0.1.0"
 }

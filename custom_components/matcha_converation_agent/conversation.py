@@ -1,20 +1,17 @@
-from typing import Literal, Any
+from typing import Any, Literal
 
-from homeassistant.components import conversation
+from homeassistant.components import assist_pipeline, conversation
 from homeassistant.config_entries import ConfigEntry
+from homeassistant.const import CONF_LLM_HASS_API, CONF_URL, MATCH_ALL
 from homeassistant.core import HomeAssistant
-from homeassistant.helpers.entity_platform import AddConfigEntryEntitiesCallback
+from homeassistant.helpers import aiohttp_client, device_registry, intent
+from homeassistant.helpers.entity_platform import (
+    AddConfigEntryEntitiesCallback,
+)
+from homeassistant.helpers.llm import Tool, ToolInput
 
-from homeassistant.components import conversation, assist_pipeline
-from homeassistant.const import CONF_URL, MATCH_ALL, CONF_LLM_HASS_API, Platform
-from homeassistant.helpers.entity_platform import AddConfigEntryEntitiesCallback
-from homeassistant.helpers.llm import ToolInput, Tool
-from homeassistant.loader import async_get_loaded_integration
-from homeassistant.helpers import aiohttp_client, intent, device_registry
-from homeassistant.helpers.entity_platform import AddEntitiesCallback
-from homeassistant.config_entries import ConfigEntry
 from .client import MatchaClient
-from .const import DOMAIN, LOGGER, DATA_AGENT, CONF_PROMPT, CONF_AGENT_NAME
+from .const import CONF_AGENT_NAME, CONF_PROMPT, DOMAIN
 
 
 async def async_setup_entry(
@@ -106,7 +103,7 @@ class MatchaAgent(conversation.ConversationEntity, conversation.AbstractConversa
         tools: list[dict[str, Any]] | None = None
         if chat_log.llm_api:
             tools = [
-                _convert_tool(tool)  # TODO format the tools as your LLM expects
+                _convert_tool(tool)
                 for tool in chat_log.llm_api.tools
             ]
 

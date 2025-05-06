@@ -7,18 +7,21 @@ https://github.com/marcushill/matcha_conversation_agent
 
 from __future__ import annotations
 
-from typing import TYPE_CHECKING, Literal, Any
+from typing import TYPE_CHECKING, Any, Literal
 
-from homeassistant.components import conversation, assist_pipeline
-from homeassistant.const import CONF_URL, MATCH_ALL, CONF_LLM_HASS_API, Platform
-from homeassistant.helpers.entity_platform import AddConfigEntryEntitiesCallback
+from homeassistant.components import assist_pipeline, conversation
+from homeassistant.config_entries import ConfigEntry
+from homeassistant.const import CONF_LLM_HASS_API, CONF_URL, MATCH_ALL, Platform
+from homeassistant.helpers import aiohttp_client, device_registry, intent
+from homeassistant.helpers.entity_platform import (
+    AddConfigEntryEntitiesCallback,
+    AddEntitiesCallback,
+)
 from homeassistant.helpers.llm import ToolInput
 from homeassistant.loader import async_get_loaded_integration
-from homeassistant.helpers import aiohttp_client, intent, device_registry
-from homeassistant.helpers.entity_platform import AddEntitiesCallback
-from homeassistant.config_entries import ConfigEntry
+
 from .client import MatchaClient
-from .const import DOMAIN, LOGGER, DATA_AGENT, CONF_PROMPT, CONF_AGENT_NAME
+from .const import CONF_AGENT_NAME, CONF_PROMPT, DATA_AGENT, DOMAIN, LOGGER
 
 if TYPE_CHECKING:
     from homeassistant.core import HomeAssistant

@@ -3,14 +3,15 @@
 from __future__ import annotations
 
 import urllib.parse
-from typing import Any, Coroutine, TypedDict
+from typing import TypedDict
 
 import voluptuous as vol
 from homeassistant import config_entries
-from homeassistant.const import CONF_PASSWORD, CONF_USERNAME, CONF_URL
+from homeassistant.const import CONF_URL
 from homeassistant.helpers import selector
 from slugify import slugify
-from .const import DOMAIN, LOGGER, CONF_AGENT_NAME
+
+from .const import CONF_AGENT_NAME, DOMAIN
 
 
 async def validate_basic_info(user_input: dict | None) -> bool:
