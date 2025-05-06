@@ -21,13 +21,14 @@ async def async_setup_entry(
 ) -> bool:
     """Set up this integration using UI."""
     agent = MatchaAgent(hass, entry)
-    #conversation.async_set_agent(hass, entry, agent)
     async_add_entities([agent])
     return True
 
 
 
-class MatchaAgent(conversation.ConversationEntity, conversation.AbstractConversationAgent):
+class MatchaAgent(
+    conversation.ConversationEntity, conversation.AbstractConversationAgent
+):
     """MatchaAgent conversation agent."""
 
     _attr_has_entity_name = True
@@ -39,7 +40,10 @@ class MatchaAgent(conversation.ConversationEntity, conversation.AbstractConversa
         self._attr_unique_id = entry.entry_id
         self.history: dict[str, list[dict]] = {}
         base_url = entry.data.get(CONF_URL)
-        self.client = MatchaClient(base_url, aiohttp_client.async_get_clientsession(hass))
+        self.client = MatchaClient(
+            base_url,
+            aiohttp_client.async_get_clientsession(hass),
+        )
 
         if self.entry.options.get(CONF_LLM_HASS_API):
             self._attr_supported_features = (
@@ -123,14 +127,20 @@ class MatchaAgent(conversation.ConversationEntity, conversation.AbstractConversa
 
             # Process tool calls
             tool_calls = None
-            if response["tool_call_requests"] and len(response["tool_call_requests"]) > 0:
-                tool_calls = [chat_log.llm_api.async_call_tool(ToolInput(x["name"], x["arguments"], x["id"])) for x in response["tool_call_requests"]]
+            if (response["tool_call_requests"] and
+                    len(response["tool_call_requests"]) > 0):
+                tool_calls = [
+                    chat_log.llm_api.async_call_tool(ToolInput(x["name"], x["arguments"], x["id"]))
+                    for x in response["tool_call_requests"]
+                ]
 
             messages.extend(
                 [
                     _convert_content(user_input, content)
                     async for content in chat_log.async_add_assistant_content(
-                        conversation.AssistantContent(user_input.agent_id, response["content"], tool_calls )
+                        conversation.AssistantContent(user_input.agent_id,
+                                                      response["content"],
+                                                      tool_calls)
                     )
                 ]
             )
@@ -157,7 +167,10 @@ hass_to_match_roles = {
 }
 matcha_to_has_roles = {v: k for k, v in hass_to_match_roles.items()}
 
-def _convert_content(user_input: conversation.ConversationInput, content: conversation.Content) -> dict[str, Any]:
+def _convert_content(
+        user_input: conversation.ConversationInput,
+        content: conversation.Content
+) -> dict[str, Any]:
     # Switch over all possible content types
     result = {
         "role": hass_to_match_roles[content.role],
