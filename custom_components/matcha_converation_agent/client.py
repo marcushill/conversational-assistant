@@ -15,3 +15,8 @@ class MatchaClient:
     async def agent_chat(self, agent_id: str, body: dict[str, Any]) -> dict[str, Any]:
         result = await self.session.post(urllib.parse.urljoin(self.base_url, "agents/") + agent_id + "/chat", json=body)
         return await result.json()
+
+    async def agent_list(self) -> list[dict[str, Any]]:
+        """Get the list of agents."""
+        result = await self.session.get(urllib.parse.urljoin(self.base_url, "agents"))
+        return await result.json()
