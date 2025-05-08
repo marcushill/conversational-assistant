@@ -2,18 +2,13 @@
 
 from __future__ import annotations
 
-import urllib.parse
-from types import MappingProxyType
-from typing import Any
+from typing import TYPE_CHECKING, Any
 
 import voluptuous as vol
-from aiohttp import ClientSession
 from homeassistant import config_entries
-from homeassistant.config_entries import ConfigFlowResult
-from homeassistant.const import CONF_URL, CONF_LLM_HASS_API
-from homeassistant.core import callback, HomeAssistant
-from homeassistant.data_entry_flow import FlowResult
-from homeassistant.helpers import aiohttp_client, selector, llm
+from homeassistant.const import CONF_LLM_HASS_API, CONF_URL
+from homeassistant.core import HomeAssistant, callback
+from homeassistant.helpers import aiohttp_client, llm, selector
 from homeassistant.helpers.selector import (
     SelectOptionDict,
     SelectSelector,
@@ -24,13 +19,18 @@ from slugify import slugify
 from . import MatchaClient
 from .const import CONF_AGENT_NAME, DOMAIN
 
+if TYPE_CHECKING:
+    from types import MappingProxyType
 
-async def validate_base_url(user_input: dict | None, session: ClientSession) -> bool:
-    # TODO: Make a way to validate that the URL and agent are valid.
+    from aiohttp import ClientSession
+    from homeassistant.config_entries import ConfigFlowResult
+    from homeassistant.data_entry_flow import FlowResult
+
+async def _validate_base_url(user_input: dict | None, session: ClientSession) -> bool:
     if user_input is None:
         return False
 
-    base_url = user_input.get(CONF_URL)
+    base_url : str = user_input.get(CONF_URL)
     if base_url == "":
         return False
 
@@ -40,8 +40,7 @@ async def validate_base_url(user_input: dict | None, session: ClientSession) -> 
     return True
 
 
-async def validate_agent(user_input: dict | None, client: MatchaClient) -> bool:
-    # TODO: Make a way to validate that the URL and agent are valid.
+async def _validate_agent(user_input: dict | None, client: MatchaClient) -> bool:
     if user_input is None:
         return False
 
@@ -60,16 +59,17 @@ class MatchaFlowHandler(config_entries.ConfigFlow, domain=DOMAIN):
 
     VERSION = 1
 
-    def __init__(self):
+    def __init__(self) -> None:
+        """Initialize the config flow."""
         self.base_url = None
 
     @staticmethod
     @callback
     def async_get_options_flow(
-            config_entry: ConfigEntry,
+            config_entry: Any,
     ) -> OptionsFlowHandler:
         """Create the options flow."""
-        return OptionsFlowHandler()
+        return OptionsFlowHandler(config_entry)
 
     async def async_step_user(
         self,
@@ -79,11 +79,10 @@ class MatchaFlowHandler(config_entries.ConfigFlow, domain=DOMAIN):
         _errors = {}
         if user_input is not None:
             try:
-                if await validate_base_url(user_input, aiohttp_client.async_get_clientsession(self.hass)):
+                if await _validate_base_url(user_input, aiohttp_client.async_get_clientsession(self.hass)):
                     self.base_url = user_input[CONF_URL]
                     return await self.async_step_choose_agent()
             except Exception as e:
-                print(e)
                 _errors= {CONF_URL: str(e)}
 
         return self.async_show_form(
@@ -107,11 +106,11 @@ class MatchaFlowHandler(config_entries.ConfigFlow, domain=DOMAIN):
     async def async_step_choose_agent(self,
                                       user_input: dict | None = None,
                                       ) -> ConfigFlowResult:
+        """Handle a flow after the user has selected a base URL."""
         _errors = {}
         session = aiohttp_client.async_get_clientsession(self.hass)
         matcha_client = MatchaClient(self.base_url, session)
-        if user_input is not None:
-            if await validate_agent(user_input, matcha_client):
+        if user_input is not None and await _validate_agent(user_input, matcha_client):
                 agent_title = f"Matcha Agent {user_input[CONF_AGENT_NAME]}"
                 unique_id = slugify("-".join([self.base_url, "agents", user_input[CONF_AGENT_NAME]]))
                 await self.async_set_unique_id(unique_id=unique_id)
@@ -143,8 +142,15 @@ class MatchaFlowHandler(config_entries.ConfigFlow, domain=DOMAIN):
             ),
             errors=_errors,
         )
-
 class OptionsFlowHandler(config_entries.OptionsFlow):
+    """
+    OptionsFlowHandler for Matcha Conversation Agent.
+    This handles the options flow for the Matcha Conversation Agent allowing selection of valid tools.
+    """
+
+    def __init__(self, config_entry: config_entries.ConfigEntry) -> None:
+        self.config_entry = config_entry
+
     async def async_step_init(
         self, user_input: dict[str, Any] | None = None
     ) -> FlowResult:

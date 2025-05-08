@@ -9,13 +9,13 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING
 
-from homeassistant.config_entries import ConfigEntry
 from homeassistant.const import Platform
 
 from .client import MatchaClient
-from .const import CONF_AGENT_NAME, CONF_PROMPT, DATA_AGENT, DOMAIN, LOGGER
+from .const import CONF_AGENT_NAME, CONF_PROMPT, DATA_AGENT, DOMAIN
 
 if TYPE_CHECKING:
+    from homeassistant.config_entries import ConfigEntry
     from homeassistant.core import HomeAssistant
 
 PLATFORMS = (Platform.CONVERSATION, )
@@ -26,8 +26,7 @@ async def async_setup_entry(
     entry: ConfigEntry,
 ) -> bool:
     """Set up this integration using UI."""
-    data = hass.data.setdefault(DOMAIN, {}).setdefault(entry.entry_id, {})
-    # conversation.async_set_agent(hass, entry, agent)
+    hass.data.setdefault(DOMAIN, {}).setdefault(entry.entry_id, {})
     await hass.config_entries.async_forward_entry_setups(entry, PLATFORMS)
     return True
 
@@ -40,7 +39,6 @@ async def async_unload_entry(
 ) -> bool:
     """Handle removal of an entry."""
     hass.data[DOMAIN].pop(entry.entry_id)
-    # conversation.async_unset_agent(hass, entry)
     await hass.config_entries.async_unload_platforms( entry, PLATFORMS)
     return True
 

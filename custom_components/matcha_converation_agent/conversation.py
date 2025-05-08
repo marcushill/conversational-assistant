@@ -1,3 +1,4 @@
+"""Conversation agent/module for the Matcha integration."""
 from typing import Any, Literal
 
 from homeassistant.components import assist_pipeline, conversation
