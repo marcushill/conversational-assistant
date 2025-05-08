@@ -9,6 +9,7 @@ from homeassistant.helpers.entity_platform import (
     AddConfigEntryEntitiesCallback,
 )
 from homeassistant.helpers.llm import Tool, ToolInput
+from voluptuous_openapi import convert
 
 from .client import MatchaClient
 from .const import CONF_AGENT_NAME, CONF_PROMPT, DOMAIN
@@ -126,13 +127,18 @@ class MatchaAgent(
 
 
             # Process tool calls
-            tool_calls = None
+            tool_call_tasks = None
+            tool_call_inputs = None
             if (response["tool_call_requests"] and
                     len(response["tool_call_requests"]) > 0):
-                tool_calls = [
-                    chat_log.llm_api.async_call_tool(ToolInput(x["name"], x["arguments"], x["id"]))
+                tool_call_inputs = [
+                    ToolInput(x["name"], x["arguments"], x["id"])
                     for x in response["tool_call_requests"]
                 ]
+                tool_call_tasks = {
+                    x.id: chat_log.llm_api.async_call_tool(x)
+                    for x in tool_call_inputs
+                }
 
             messages.extend(
                 [
@@ -140,7 +146,8 @@ class MatchaAgent(
                     async for content in chat_log.async_add_assistant_content(
                         conversation.AssistantContent(user_input.agent_id,
                                                       response["content"],
-                                                      tool_calls)
+                                                      tool_call_inputs),
+                         tool_call_tasks
                     )
                 ]
             )
@@ -174,8 +181,11 @@ def _convert_content(
     # Switch over all possible content types
     result = {
         "role": hass_to_match_roles[content.role],
-        "content": content.content
+        "content": "",
     }
+
+    if result["role"] != "Tool":
+        result["content"] = content.content
 
     if result["role"] == "User":
         result["user_name"] = user_input.context.user_id
@@ -196,6 +206,6 @@ def _convert_tool(tool: Tool) -> dict[str, Any]:
         "name": tool.name,
         "type": "function",
         "description": tool.description,
-        "parameters": tool.parameters,
+        "parameters": convert(tool.parameters),
         "strict": True,
     }

@@ -3,13 +3,17 @@
 from __future__ import annotations
 
 import urllib.parse
+from types import MappingProxyType
+from typing import Any
 
 import voluptuous as vol
 from aiohttp import ClientSession
 from homeassistant import config_entries
 from homeassistant.config_entries import ConfigFlowResult
-from homeassistant.const import CONF_URL
-from homeassistant.helpers import aiohttp_client, selector
+from homeassistant.const import CONF_URL, CONF_LLM_HASS_API
+from homeassistant.core import callback, HomeAssistant
+from homeassistant.data_entry_flow import FlowResult
+from homeassistant.helpers import aiohttp_client, selector, llm
 from homeassistant.helpers.selector import (
     SelectOptionDict,
     SelectSelector,
@@ -59,6 +63,14 @@ class MatchaFlowHandler(config_entries.ConfigFlow, domain=DOMAIN):
     def __init__(self):
         self.base_url = None
 
+    @staticmethod
+    @callback
+    def async_get_options_flow(
+            config_entry: ConfigEntry,
+    ) -> OptionsFlowHandler:
+        """Create the options flow."""
+        return OptionsFlowHandler()
+
     async def async_step_user(
         self,
         user_input: dict | None = None,
@@ -101,7 +113,7 @@ class MatchaFlowHandler(config_entries.ConfigFlow, domain=DOMAIN):
         if user_input is not None:
             if await validate_agent(user_input, matcha_client):
                 agent_title = f"Matcha Agent {user_input[CONF_AGENT_NAME]}"
-                unique_id = slugify(urllib.parse.urljoin(self.base_url, "agents", user_input[CONF_AGENT_NAME]))
+                unique_id = slugify("-".join([self.base_url, "agents", user_input[CONF_AGENT_NAME]]))
                 await self.async_set_unique_id(unique_id=unique_id)
                 self._abort_if_unique_id_configured()
                 return self.async_create_entry(
@@ -132,3 +144,40 @@ class MatchaFlowHandler(config_entries.ConfigFlow, domain=DOMAIN):
             errors=_errors,
         )
 
+class OptionsFlowHandler(config_entries.OptionsFlow):
+    async def async_step_init(
+        self, user_input: dict[str, Any] | None = None
+    ) -> FlowResult:
+        """Manage the options."""
+        if user_input is not None:
+            return self.async_create_entry(data=user_input)
+
+        return self.async_show_form(
+            step_id="init",
+            data_schema=self.add_suggested_values_to_schema(
+                async_get_options_schema(self.hass, self.config_entry.options), self.config_entry.options
+            ),
+        )
+
+@callback
+def async_get_options_schema(
+        hass: HomeAssistant,
+        options: MappingProxyType[str, Any],
+) -> vol.Schema:
+    """Return the options schema."""
+    apis: list[SelectOptionDict] = [
+        SelectOptionDict(
+            label=api.name,
+            value=api.id,
+        )
+        for api in llm.async_get_apis(hass)
+    ]
+
+    return vol.Schema(
+        {
+            vol.Optional(
+                CONF_LLM_HASS_API,
+                description={"suggested_value": options.get(CONF_LLM_HASS_API)},
+            ): SelectSelector(SelectSelectorConfig(options=apis, multiple=True)),
+        }
+    )
