@@ -1,5 +1,5 @@
 """Conversation agent/module for the Matcha integration."""
-from typing import Any, Literal
+from typing import Any, Literal, Callable
 
 from homeassistant.components import assist_pipeline, conversation
 from homeassistant.config_entries import ConfigEntry
@@ -109,7 +109,7 @@ class MatchaAgent(
         tools: list[dict[str, Any]] | None = None
         if chat_log.llm_api:
             tools = [
-                _convert_tool(tool)
+                _convert_tool(tool, custom_serializer=chat_log.llm_api.custom_serializer)
                 for tool in chat_log.llm_api.tools
             ]
 
@@ -202,11 +202,13 @@ def _convert_content(
 
     return result
 
-def _convert_tool(tool: Tool) -> dict[str, Any]:
+def _convert_tool(
+        tool: Tool, custom_serializer: Callable[[Any], Any] | None
+) -> dict[str, Any]:
     return {
         "name": tool.name,
         "type": "function",
         "description": tool.description,
-        "parameters": convert(tool.parameters),
+        "parameters": convert(tool.parameters, custom_serializer=custom_serializer),
         "strict": True,
     }
