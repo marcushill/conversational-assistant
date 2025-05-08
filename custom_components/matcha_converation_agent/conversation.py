@@ -101,7 +101,7 @@ class MatchaAgent(
                 DOMAIN,
                 user_input,
                 self.entry.options.get(CONF_LLM_HASS_API),
-                self.entry.options.get(CONF_PROMPT),
+                self.entry.data.get(CONF_PROMPT),
             )
         except conversation.ConverseError as err:
             return err.as_conversation_result()

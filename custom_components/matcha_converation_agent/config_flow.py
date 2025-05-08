@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from typing import TYPE_CHECKING, Any
+from typing import TYPE_CHECKING, Any, List
 
 import voluptuous as vol
 from homeassistant import config_entries
@@ -17,7 +17,7 @@ from homeassistant.helpers.selector import (
 from slugify import slugify
 
 from . import MatchaClient
-from .const import CONF_AGENT_NAME, DOMAIN
+from .const import CONF_AGENT_NAME, DOMAIN, CONF_PROMPT
 
 if TYPE_CHECKING:
     from types import MappingProxyType
@@ -53,6 +53,30 @@ async def _validate_agent(user_input: dict | None, client: MatchaClient) -> bool
         return any(True for agent in agents if agent["name"] == agent_name)
     except Exception:
         return False
+
+
+def _get_agent_setup_schema(agent_names: List[str], current_prompt: str) -> vol.Schema:
+    return vol.Schema({
+                vol.Optional(
+                    CONF_AGENT_NAME,
+                    description={"suggested_value": agent_names[0]},
+                ): SelectSelector(SelectSelectorConfig(options=[
+                    SelectOptionDict(
+                            value=agent_name,
+                            label=agent_name,
+                        ) for agent_name in agent_names
+                    ], multiple=False)),
+                vol.Required(
+                    CONF_PROMPT,
+                    description={"suggested_value": current_prompt},
+                ): selector.TextSelector(
+                    selector.TextSelectorConfig(
+                        type=selector.TextSelectorType.TEXT,
+                        multiline=True,
+                    )
+                )
+            })
+
 
 class MatchaFlowHandler(config_entries.ConfigFlow, domain=DOMAIN):
     """Config flow for Matcha Conversation Agent."""
@@ -112,7 +136,7 @@ class MatchaFlowHandler(config_entries.ConfigFlow, domain=DOMAIN):
         matcha_client = MatchaClient(self.base_url, session)
         if user_input is not None and await _validate_agent(user_input, matcha_client):
                 agent_title = f"Matcha Agent {user_input[CONF_AGENT_NAME]}"
-                unique_id = slugify("-".join([self.base_url, "agents", user_input[CONF_AGENT_NAME]]))
+                unique_id = self._get_unique_id(self.base_url, user_input[CONF_AGENT_NAME])
                 await self.async_set_unique_id(unique_id=unique_id)
                 self._abort_if_unique_id_configured()
                 return self.async_create_entry(
@@ -120,28 +144,53 @@ class MatchaFlowHandler(config_entries.ConfigFlow, domain=DOMAIN):
                     data={
                         CONF_URL: self.base_url,
                         CONF_AGENT_NAME: user_input[CONF_AGENT_NAME],
+                        CONF_PROMPT: user_input[CONF_PROMPT],
                     },
                 )
         agents = await matcha_client.agent_list()
         agent_names = [agent["name"] for agent in agents]
+        if user_input is None:
+            user_input = {}
         return self.async_show_form(
             step_id="choose_agent",
             last_step=True,
-            data_schema=vol.Schema(
-                {
-                    vol.Optional(
-                        CONF_AGENT_NAME,
-                        description={"suggested_value": agent_names[0]},
-                    ): SelectSelector(SelectSelectorConfig(options=[
-                        SelectOptionDict(
-                                value=agent_name,
-                                label=agent_name,
-                            ) for agent_name in agent_names
-                        ], multiple=False)),
-                },
+            data_schema=_get_agent_setup_schema(
+                agent_names,
+                user_input.get(CONF_PROMPT, llm.DEFAULT_INSTRUCTIONS_PROMPT)
             ),
             errors=_errors,
         )
+
+    async def async_step_reconfigure(self, user_input: dict[str, Any] | None = None):
+        entry = self._get_reconfigure_entry()
+        base_url = entry.data.get(CONF_URL)
+        if user_input is not None:
+            unique_id = self._get_unique_id(base_url, user_input[CONF_AGENT_NAME])
+            await self.async_set_unique_id(unique_id)
+            self._abort_if_unique_id_mismatch()
+            return self.async_update_reload_and_abort(
+                entry,
+                data_updates={
+                        CONF_AGENT_NAME: user_input[CONF_AGENT_NAME],
+                        CONF_PROMPT: user_input[CONF_PROMPT],
+                    },
+            )
+        session = aiohttp_client.async_get_clientsession(self.hass)
+        matcha_client = MatchaClient(base_url, session)
+        agents = await matcha_client.agent_list()
+        agent_names = [agent["name"] for agent in agents]
+        if user_input is None:
+            user_input = {}
+        return self.async_show_form(
+            step_id="reconfigure",
+            data_schema=_get_agent_setup_schema(
+                agent_names,
+                entry.data.get(CONF_PROMPT, llm.DEFAULT_INSTRUCTIONS_PROMPT)
+            ),
+        )
+
+    def _get_unique_id(self, base_url: str, agent_name: str) -> str:
+        return slugify("-".join([base_url, "agents", agent_name]))
 
 class OptionsFlowHandler(config_entries.OptionsFlow):
     """
